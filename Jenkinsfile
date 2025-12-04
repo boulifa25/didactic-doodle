@@ -19,22 +19,27 @@ pipeline {
         }
 
         stage('Build & Test & Coverage') {
-            steps {
-                sh './mvnw clean verify'
-            }
-        }
+    steps {
+        sh '''
+            chmod +x mvnw
+            ./mvnw clean verify
+        '''
+    }
+}
 
         stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv('sonar-server') {
-                    sh '''
-                        ./mvnw sonar:sonar \
-                           -Dsonar.projectKey=didactic-doodle \
-                           -Dsonar.projectName="Didactic Doodle"
-                    '''
-                }
-            }
+    steps {
+        withSonarQubeEnv('sonar-server') {
+            sh '''
+                chmod +x mvnw
+                ./mvnw sonar:sonar \
+                  -Dsonar.projectKey=didactic-doodle \
+                  -Dsonar.projectName="Didactic Doodle"
+            '''
         }
+    }
+}
+
 
         stage('Docker Build') {
             steps {
