@@ -39,21 +39,7 @@ pipeline {
         }
     }
 }
-        stage('Setup Docker') {
-    steps {
-            sh '''
-      # Installer Docker si non présent
-      if ! command -v docker &> /dev/null; then
-        echo "Installing Docker..."
-        apt-get update
-        apt-get install -y docker.io
-      fi
-      
-      # Vérifier l'installation
-      docker --version
-    '''
-  }
-}
+       
        
         stage('Docker Build') {
             steps {
