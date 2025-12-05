@@ -7,7 +7,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = 'boulifa25/didactic-doodle:latest'
-        DOCKER_CREDENTIALS_ID = 'dockerhub-aziz'
+        DOCKER_CREDENTIALS_ID = 'c85ad107-c988-416f-b3d7-7d25ce9599e0'
     }
 
     stages {
