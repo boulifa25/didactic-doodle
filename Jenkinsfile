@@ -18,29 +18,55 @@ pipeline {
             }
         }
 
-        stage('Build & Test & Coverage') {
-    steps {
-        sh '''
-            chmod +x mvnw
-            ./mvnw clean verify
-        '''
-    }
-}
+        stage('Compile') {
+            steps {
+                sh '''
+                    chmod +x mvnw
+                    ./mvnw clean compile
+                '''
+            }
+        }
+
+        stage('Package') {
+            steps {
+                sh '''
+                    chmod +x mvnw
+                    ./mvnw package -DskipTests
+                '''
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh '''
+                    chmod +x mvnw
+                    ./mvnw test
+                '''
+            }
+        }
+
+        stage('Coverage') {
+            steps {
+                sh '''
+                    chmod +x mvnw
+                    ./mvnw verify
+                '''
+            }
+        }
 
         stage('SonarQube Analysis') {
-    steps {
-        withSonarQubeEnv('sonar-server') {
-            sh '''
-                chmod +x mvnw
-                ./mvnw sonar:sonar \
-                  -Dsonar.projectKey=didactic-doodle \
-                  -Dsonar.projectName="Didactic Doodle"
-            '''
+            steps {
+                withSonarQubeEnv('sonar-server') {
+                    sh '''
+                        chmod +x mvnw
+                        ./mvnw sonar:sonar \
+                          -Dsonar.projectKey=didactic-doodle \
+                          -Dsonar.projectName="Didactic Doodle"
+                    '''
+                }
+            }
         }
-    }
-}
-       
-       
+
         stage('Docker Build') {
             steps {
                 sh "docker build -t ${IMAGE_NAME} ."
