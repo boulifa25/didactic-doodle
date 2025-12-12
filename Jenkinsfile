@@ -14,42 +14,16 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/boulifa25/didactic-doodle.git'
+                git branch: 'main',
+                    url: 'https://github.com/boulifa25/didactic-doodle.git'
             }
         }
 
-        stage('Compile') {
+        stage('Build & Test') {
             steps {
                 sh '''
                     chmod +x mvnw
-                    ./mvnw clean compile
-                '''
-            }
-        }
-
-        stage('Package') {
-            steps {
-                sh '''
-                    chmod +x mvnw
-                    ./mvnw package -DskipTests
-                '''
-            }
-        }
-
-        stage('Test') {
-            steps {
-                sh '''
-                    chmod +x mvnw
-                    ./mvnw test
-                '''
-            }
-        }
-
-        stage('Coverage') {
-            steps {
-                sh '''
-                    chmod +x mvnw
-                    ./mvnw verify
+                    ./mvnw clean verify
                 '''
             }
         }
@@ -58,11 +32,18 @@ pipeline {
             steps {
                 withSonarQubeEnv('sonar-server') {
                     sh '''
-                        chmod +x mvnw
                         ./mvnw sonar:sonar \
                           -Dsonar.projectKey=didactic-doodle \
                           -Dsonar.projectName="Didactic Doodle"
                     '''
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
                 }
             }
         }
@@ -76,14 +57,28 @@ pipeline {
         stage('Docker Push') {
             steps {
                 withCredentials([
-                    usernamePassword(credentialsId: "${DOCKER_CREDENTIALS_ID}",
-                                     usernameVariable: 'USER',
-                                     passwordVariable: 'PASS')
+                    usernamePassword(
+                        credentialsId: "${DOCKER_CREDENTIALS_ID}",
+                        usernameVariable: 'USER',
+                        passwordVariable: 'PASS'
+                    )
                 ]) {
-                    sh 'echo "${PASS}" | docker login -u "${USER}" --password-stdin'
-                    sh "docker push ${IMAGE_NAME}"
+                    sh '''
+                        echo "$PASS" | docker login -u "$USER" --password-stdin
+                        docker push ${IMAGE_NAME}
+                        docker logout
+                    '''
                 }
             }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Pipeline terminé avec succès"
+        }
+        failure {
+            echo "❌ Pipeline échoué"
         }
     }
 }
