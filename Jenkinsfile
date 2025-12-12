@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    tools {
-        maven 'M2_HOME'
-    }
-
     environment {
         IMAGE_NAME = 'boulifa25/student-management:latest'
         DOCKER_CREDENTIALS_ID = 'c85ad107-c988-416f-b3d7-7d25ce9599e0'
@@ -31,11 +27,17 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('sonar-server') {
-                    sh '''
-                        ./mvnw sonar:sonar \
-                          -Dsonar.projectKey=didactic-doodle \
-                          -Dsonar.projectName="Didactic Doodle"
-                    '''
+                    withCredentials([
+                        string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')
+                    ]) {
+                        sh '''
+                            chmod +x mvnw
+                            ./mvnw sonar:sonar \
+                              -Dsonar.projectKey=didactic-doodle \
+                              -Dsonar.projectName="Didactic Doodle" \
+                              -Dsonar.login=$SONAR_TOKEN
+                        '''
+                    }
                 }
             }
         }
