@@ -3,7 +3,6 @@ pipeline {
 
     environment {
         IMAGE_NAME = 'boulifa25/student-management:latest'
-        DOCKER_CREDENTIALS_ID = 'c85ad107-c988-416f-b3d7-7d25ce9599e0'
     }
 
     stages {
@@ -36,11 +35,9 @@ pipeline {
             }
         }
 
-        
-
         stage('Docker Build') {
             steps {
-                sh "docker build -t ${IMAGE_NAME} ."
+                sh 'docker build -t boulifa25/student-management:latest .'
             }
         }
 
@@ -48,14 +45,14 @@ pipeline {
             steps {
                 withCredentials([
                     usernamePassword(
-                        credentialsId: "${DOCKER_CREDENTIALS_ID}",
+                        credentialsId: 'dockerhub-creds',
                         usernameVariable: 'DOCKER_USER',
                         passwordVariable: 'DOCKER_PASS'
                     )
                 ]) {
                     sh '''
                         echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker push ${IMAGE_NAME}
+                        docker push boulifa25/student-management:latest
                         docker logout
                     '''
                 }
