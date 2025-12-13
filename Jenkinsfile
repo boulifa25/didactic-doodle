@@ -38,7 +38,6 @@ pipeline {
             }
         }
 
-
         stage('Docker Build') {
             steps {
                 sh '''
@@ -68,8 +67,28 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 sh '''
-                    kubectl apply -f k8s/deployment.yaml
-                    kubectl apply -f k8s/service.yaml
+                    echo "📦 Déploiement Kubernetes..."
+
+                    # Namespace (safe)
+                    kubectl create namespace ${K8S_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
+
+                    # Apply manifests
+                    kubectl apply -f k8s/ -n ${K8S_NAMESPACE}
+
+                    # Force image update (rolling update)
+                    kubectl set image deployment/spring-app spring-app=${IMAGE_NAME} -n ${K8S_NAMESPACE}
+                '''
+            }
+        }
+
+        stage('Verify Kubernetes Deployment') {
+            steps {
+                sh '''
+                    echo "🔍 Vérification du déploiement..."
+
+                    kubectl rollout status deployment/spring-app -n ${K8S_NAMESPACE}
+                    kubectl get pods -n ${K8S_NAMESPACE}
+                    kubectl get svc -n ${K8S_NAMESPACE}
                 '''
             }
         }
@@ -77,10 +96,10 @@ pipeline {
 
     post {
         success {
-            echo "✅ CI/CD + Kubernetes exécuté avec succès"
+            echo "✅ CI/CD + Docker + Kubernetes exécuté avec succès"
         }
         failure {
-            echo "❌ Échec du pipeline"
+            echo "❌ Échec du pipeline CI/CD"
         }
     }
 }
