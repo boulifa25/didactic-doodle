@@ -4,7 +4,6 @@ pipeline {
     environment {
         IMAGE_NAME = 'boulifa25/student-management:latest'
         DOCKER_CREDENTIALS_ID = 'c85ad107-c988-416f-b3d7-7d25ce9599e0'
-        SONAR_TOKEN_ID = '95dafca5-e2ef-49d0-ac2a-eb375607c8c8'
     }
 
     stages {
@@ -29,7 +28,7 @@ pipeline {
             steps {
                 withSonarQubeEnv('sonar-server') {
                     withCredentials([
-                        string(credentialsId: "${SONAR_TOKEN_ID}", variable: 'SONAR_TOKEN')
+                        string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')
                     ]) {
                         sh '''
                             ./mvnw sonar:sonar \
