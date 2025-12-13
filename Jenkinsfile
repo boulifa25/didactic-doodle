@@ -2,7 +2,10 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'boulifa25/student-management:latest'
+        IMAGE_NAME = "boulifa25/student-management:latest"
+        DOCKER_CREDENTIALS_ID = "dockerhub-creds"
+        SONARQUBE_ENV = "sonar-server"
+        K8S_NAMESPACE = "devops"
     }
 
     stages {
@@ -25,7 +28,7 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('sonar-server') {
+                withSonarQubeEnv("${SONARQUBE_ENV}") {
                     sh '''
                         ./mvnw sonar:sonar \
                           -Dsonar.projectKey=didactic-doodle \
@@ -35,9 +38,19 @@ pipeline {
             }
         }
 
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 3, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
         stage('Docker Build') {
             steps {
-                sh 'docker build -t boulifa25/student-management:latest .'
+                sh '''
+                    docker build -t ${IMAGE_NAME} .
+                '''
             }
         }
 
@@ -45,27 +58,36 @@ pipeline {
             steps {
                 withCredentials([
                     usernamePassword(
-                        credentialsId: 'dockerhub-creds',
+                        credentialsId: "${DOCKER_CREDENTIALS_ID}",
                         usernameVariable: 'DOCKER_USER',
                         passwordVariable: 'DOCKER_PASS'
                     )
                 ]) {
                     sh '''
                         echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker push boulifa25/student-management:latest
+                        docker push ${IMAGE_NAME}
                         docker logout
                     '''
                 }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh '''
+                    kubectl apply -f k8s/deployment.yaml
+                    kubectl apply -f k8s/service.yaml
+                '''
             }
         }
     }
 
     post {
         success {
-            echo "✅ Pipeline terminé avec succès"
+            echo "✅ CI/CD + Kubernetes exécuté avec succès"
         }
         failure {
-            echo "❌ Pipeline échoué"
+            echo "❌ Échec du pipeline"
         }
     }
 }
