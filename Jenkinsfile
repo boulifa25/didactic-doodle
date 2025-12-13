@@ -27,23 +27,18 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('sonar-server') {
-                    withCredentials([
-                        string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')
-                    ]) {
-                        sh '''
-                            ./mvnw sonar:sonar \
-                              -Dsonar.projectKey=didactic-doodle \
-                              -Dsonar.projectName="Didactic Doodle" \
-                              -Dsonar.login=$SONAR_TOKEN
-                        '''
-                    }
+                    sh '''
+                        ./mvnw sonar:sonar \
+                          -Dsonar.projectKey=didactic-doodle \
+                          -Dsonar.projectName="Didactic Doodle"
+                    '''
                 }
             }
         }
 
         stage('Quality Gate') {
             steps {
-                timeout(time: 3, unit: 'MINUTES') {
+                timeout(time: 5, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
             }
