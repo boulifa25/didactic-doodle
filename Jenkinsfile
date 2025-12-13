@@ -3,7 +3,8 @@ pipeline {
 
     environment {
         IMAGE_NAME = 'boulifa25/student-management:latest'
-        DOCKER_CREDENTIALS_ID = 'dockerhub-creds'
+        DOCKER_CREDENTIALS_ID = 'c85ad107-c988-416f-b3d7-7d25ce9599e0'
+        SONAR_TOKEN_ID = '95dafca5-e2ef-49d0-ac2a-eb375607c8c8'
     }
 
     stages {
@@ -28,10 +29,9 @@ pipeline {
             steps {
                 withSonarQubeEnv('sonar-server') {
                     withCredentials([
-                        string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')
+                        string(credentialsId: "${SONAR_TOKEN_ID}", variable: 'SONAR_TOKEN')
                     ]) {
                         sh '''
-                            chmod +x mvnw
                             ./mvnw sonar:sonar \
                               -Dsonar.projectKey=didactic-doodle \
                               -Dsonar.projectName="Didactic Doodle" \
@@ -44,7 +44,7 @@ pipeline {
 
         stage('Quality Gate') {
             steps {
-                timeout(time: 2, unit: 'MINUTES') {
+                timeout(time: 3, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
             }
@@ -61,12 +61,12 @@ pipeline {
                 withCredentials([
                     usernamePassword(
                         credentialsId: "${DOCKER_CREDENTIALS_ID}",
-                        usernameVariable: 'USER',
-                        passwordVariable: 'PASS'
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
                     )
                 ]) {
                     sh '''
-                        echo "$PASS" | docker login -u "$USER" --password-stdin
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                         docker push ${IMAGE_NAME}
                         docker logout
                     '''
