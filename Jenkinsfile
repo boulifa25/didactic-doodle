@@ -6,6 +6,8 @@ pipeline {
         DOCKER_CREDENTIALS_ID = "dockerhub-creds"
         SONARQUBE_ENV = "sonar-server"
         K8S_NAMESPACE = "devops"
+            KUBECONFIG = "${WORKSPACE}/kubeconfig.yaml"
+
     }
 
     stages {
@@ -63,6 +65,18 @@ pipeline {
                 }
             }
         }
+
+
+        stage('Check Kubernetes Access') {
+    steps {
+        sh '''
+            echo "🔎 Kubernetes access test"
+            kubectl config current-context
+            kubectl get nodes
+        '''
+    }
+}
+
 
         stage('Deploy to Kubernetes') {
     steps {
