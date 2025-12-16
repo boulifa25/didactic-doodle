@@ -65,21 +65,26 @@ pipeline {
         }
 
         stage('Deploy to Kubernetes') {
-            steps {
-                sh '''
-                    echo "📦 Déploiement Kubernetes..."
+    steps {
+        withCredentials([file(credentialsId: 'kubeconfig-jenkins', variable: 'KUBECONFIG')]) {
+            sh '''
+                echo "📦 Déploiement Kubernetes..."
 
-                    # Namespace (safe)
-                    kubectl create namespace ${K8S_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
+                kubectl get nodes
 
-                    # Apply manifests
-                    kubectl apply -f k8s/ -n ${K8S_NAMESPACE}
+                kubectl create namespace ${K8S_NAMESPACE} \
+                  --dry-run=client -o yaml | kubectl apply -f -
 
-                    # Force image update (rolling update)
-                    kubectl set image deployment/spring-app spring-app=${IMAGE_NAME} -n ${K8S_NAMESPACE}
-                '''
-            }
+                kubectl apply -f k8s/ -n ${K8S_NAMESPACE}
+
+                kubectl set image deployment/spring-app \
+                  spring-app=${IMAGE_NAME} \
+                  -n ${K8S_NAMESPACE}
+            '''
         }
+    }
+}
+
 
         stage('Verify Kubernetes Deployment') {
             steps {
