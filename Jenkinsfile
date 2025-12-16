@@ -6,8 +6,7 @@ pipeline {
         DOCKER_CREDENTIALS_ID = "dockerhub-creds"
         SONARQUBE_ENV = "sonar-server"
         K8S_NAMESPACE = "devops"
-            KUBECONFIG = "${WORKSPACE}/kubeconfig.yaml"
-
+        KUBECONFIG = "${WORKSPACE}/kubeconfig.yaml"
     }
 
     stages {
@@ -66,39 +65,32 @@ pipeline {
             }
         }
 
-
         stage('Check Kubernetes Access') {
-    steps {
-        sh '''
-            echo "🔎 Kubernetes access test"
-            kubectl config current-context
-            kubectl get nodes
-        '''
-    }
-}
-
+            steps {
+                sh '''
+                    echo "🔎 Kubernetes access test"
+                    kubectl config current-context
+                    kubectl get nodes
+                '''
+            }
+        }
 
         stage('Deploy to Kubernetes') {
-    steps {
-        withCredentials([file(credentialsId: 'kubeconfig-jenkins', variable: 'KUBECONFIG')]) {
-            sh '''
-                echo "📦 Déploiement Kubernetes..."
+            steps {
+                sh '''
+                    echo "📦 Déploiement Kubernetes..."
 
-                kubectl get nodes
+                    kubectl create namespace ${K8S_NAMESPACE} \
+                      --dry-run=client -o yaml | kubectl apply -f -
 
-                kubectl create namespace ${K8S_NAMESPACE} \
-                  --dry-run=client -o yaml | kubectl apply -f -
+                    kubectl apply -f k8s/ -n ${K8S_NAMESPACE}
 
-                kubectl apply -f k8s/ -n ${K8S_NAMESPACE}
-
-                kubectl set image deployment/spring-app \
-                  spring-app=${IMAGE_NAME} \
-                  -n ${K8S_NAMESPACE}
-            '''
+                    kubectl set image deployment/spring-app \
+                      spring-app=${IMAGE_NAME} \
+                      -n ${K8S_NAMESPACE}
+                '''
+            }
         }
-    }
-}
-
 
         stage('Verify Kubernetes Deployment') {
             steps {
