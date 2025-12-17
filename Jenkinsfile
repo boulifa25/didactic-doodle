@@ -65,61 +65,51 @@ pipeline {
         }
 
         stage('Check Kubernetes Access') {
-            steps {
-                withCredentials([
-                    file(credentialsId: 'kubeconfig-jenkins', variable: 'KUBECONFIG')
-                ]) {
-                    sh '''
-                        echo "🔎 Kubernetes access test"
-                        export KUBECONFIG=$KUBECONFIG
-
-                        kubectl config get-contexts
-                        kubectl config use-context minikube
-                        kubectl get nodes
-                    '''
-                }
-            }
-        }
-
-        stage('Deploy to Kubernetes') {
-            steps {
-                withCredentials([
-                    file(credentialsId: 'kubeconfig-jenkins', variable: 'KUBECONFIG')
-                ]) {
-                    sh '''
-                        echo "📦 Déploiement Kubernetes..."
-                        export KUBECONFIG=$KUBECONFIG
-
-                        kubectl create namespace ${K8S_NAMESPACE} \
-                          --dry-run=client -o yaml | kubectl apply -f -
-
-                        kubectl apply -f k8s/ -n ${K8S_NAMESPACE}
-
-                        kubectl set image deployment/spring-app \
-                          spring-app=${IMAGE_NAME} \
-                          -n ${K8S_NAMESPACE}
-                    '''
-                }
-            }
-        }
-
-        stage('Verify Kubernetes Deployment') {
-            steps {
-                withCredentials([
-                    file(credentialsId: 'kubeconfig-jenkins', variable: 'KUBECONFIG')
-                ]) {
-                    sh '''
-                        echo "🔍 Vérification du déploiement..."
-                        export KUBECONFIG=$KUBECONFIG
-
-                        kubectl rollout status deployment/spring-app -n ${K8S_NAMESPACE}
-                        kubectl get pods -n ${K8S_NAMESPACE}
-                        kubectl get svc -n ${K8S_NAMESPACE}
-                    '''
-                }
-            }
+    steps {
+        withCredentials([file(credentialsId: 'kubeconfig-jenkins', variable: 'KUBECONFIG')]) {
+            sh '''
+                echo "🔎 Kubernetes access test"
+                kubectl config get-contexts
+                kubectl config current-context
+                kubectl get nodes
+            '''
         }
     }
+}
+
+       stage('Deploy to Kubernetes') {
+    steps {
+        withCredentials([file(credentialsId: 'kubeconfig-jenkins', variable: 'KUBECONFIG')]) {
+            sh '''
+                echo "📦 Déploiement Kubernetes..."
+
+                kubectl create namespace ${K8S_NAMESPACE} \
+                  --dry-run=client -o yaml | kubectl apply -f -
+
+                kubectl apply -f k8s/ -n ${K8S_NAMESPACE}
+
+                kubectl set image deployment/spring-app \
+                  spring-app=${IMAGE_NAME} \
+                  -n ${K8S_NAMESPACE}
+            '''
+        }
+    }
+}
+
+        stage('Verify Kubernetes Deployment') {
+    steps {
+        withCredentials([file(credentialsId: 'kubeconfig-jenkins', variable: 'KUBECONFIG')]) {
+            sh '''
+                echo "🔍 Vérification du déploiement..."
+
+                kubectl rollout status deployment/spring-app -n ${K8S_NAMESPACE}
+                kubectl get pods -n ${K8S_NAMESPACE}
+                kubectl get svc -n ${K8S_NAMESPACE}
+            '''
+        }
+    }
+    }
+    
 
     post {
         success {
